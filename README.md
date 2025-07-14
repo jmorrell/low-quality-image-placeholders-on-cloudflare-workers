@@ -12,19 +12,17 @@ but bringing in a whole PNG library and processing it all in pure JavaScript fel
 heavy. Other approaches involved using wasm modules to read the image data which also felt too heavy.
 
 I approached it differently using [Cloudflare Images](https://developers.cloudflare.com/images/) which
-can leverage optimized battle-tested native code.
+can leverage optimized battle-tested native code and is available with a few lines of wrangler config.
 
 In order to calculate these approximations, you want access to the raw pixel values. While not
 highlighted in the documentation, the images binding [can output a raw array of RGB or RBGA pixels](https://workers-types.pages.dev/#ImageOutputOptions).
 Since we are looking for a highly-compressed representation, we also resize the image to fit within
 30 x 30 pixels to make calculation quick and easy.
 
-Before discovering that we could get raw pixel values from Cloudflare Bindings I did go down a
+Before discovering that we could get raw pixel values from Cloudflare Bindings I started down a
 path building an ultra-simple TypeScript PNG decoder. If you're interested in that [I've left it in the repo](src/parse-png.ts).
 
 ## LQIP implementations
-
-There are three different implementations here:
 
 ### Dominant color from an image
 
