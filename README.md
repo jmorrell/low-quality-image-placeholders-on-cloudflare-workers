@@ -36,6 +36,8 @@ This is easy to implement on both the client and server, doesn't require any Jav
 to load, but the solid block of color can be a bit visually underwhelming compared to the
 alternatives.
 
+![pinterest-placeholders](https://github.com/user-attachments/assets/960a3d30-ce27-4443-bd11-4ad30daaeff8)
+
 ### Blurhash
 
 https://blurha.sh/ is a clever approach that compresses an image into blurry gradients
@@ -44,6 +46,8 @@ library](https://github.com/woltapp/blurhash/tree/master/TypeScript) works great
 
 Blurhash provides a really visually pleasing output, but does require JavaScript and the Canvas
 API to render the placeholder, which may not be the best solution for all use-cases.
+
+<img width="1230" height="484" alt="Screenshot of Blurhash website showing an example of a compressed image" src="https://github.com/user-attachments/assets/00ffbc33-38fd-4fd3-a387-6c332acef868" />
 
 ### CSS-only blobhash
 
@@ -56,3 +60,6 @@ a single number between `-999,999` and `999,999` in a way that can be extracted 
 
 It seems the only implementation of this so far is [their blog itself](https://github.com/Kalabasa/leanrada.com/blob/7b6739c7c30c66c771fcbc9e1dc8942e628c5024/main/scripts/update/lqip.mjs#L54-L75). I've modified it
 somewhat to work well on Workers.
+
+<img width="1038" height="835" alt="Comparison of CSS-only hash vs blurhash" src="https://github.com/user-attachments/assets/66c715a4-61a7-4d27-80a4-04be324c5cdb" />
+
