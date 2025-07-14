@@ -1,7 +1,7 @@
 
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "image-test",
+	"name": "low-quality-image-placeholder-cloudflare-worker",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-07-12",
 	"observability": {

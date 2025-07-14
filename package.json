@@ -1,5 +1,5 @@
 {
-	"name": "image-test",
+	"name": "low-quality-image-placeholder-cloudflare-worker",
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
@@ -11,8 +11,7 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.8.19",
-		"jpeg-js": "^0.4.4",
-		"pdfjs": "^2.5.4",
+		"blurhash": "^2.0.5",
 		"typescript": "^5.5.2",
 		"vitest": "~3.2.0",
 		"wrangler": "^4.24.3"
