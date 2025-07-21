@@ -1,9 +1,19 @@
 # Low Quality Image Placeholders on Cloudflare Workers
 
+<img width="1095" height="1138" alt="The demo application showing several different types of LQIP images" src="https://github.com/user-attachments/assets/45ac0cd2-abb1-449e-9006-b14af902d96a" />
+
+
 This demo repo contains a couple of implementations for generating
 ultra-compressed versions of images that can be sent along with either
 the HTML or an API request that a browser or app can display to the user
 before the full image has been downloaded.
+
+There is a demo app included to experiment with this locally that can be run by:
+
+```bash
+npm install
+npm run dev
+```
 
 ## Using Cloudflare Image bindings
 
