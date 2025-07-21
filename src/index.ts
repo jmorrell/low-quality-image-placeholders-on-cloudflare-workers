@@ -88,7 +88,7 @@ async function getDominantColor(image: ReadableStream): Promise<string> {
 }
 
 async function getDominantColorFromPalette(image: ReadableStream): Promise<string> {
-	let rbgImage = await env.IMAGES.input(image).transform({ width: 100, height: 100, fit: 'cover' }).output({ format: 'rgb' });
+	let rbgImage = await env.IMAGES.input(image).transform({ width: 200, height: 200, fit: 'cover' }).output({ format: 'rgb' });
 	let rgbImageBuffer = await rbgImage.response().arrayBuffer();
 	let pixelData = new Uint8Array(rgbImageBuffer);
 
