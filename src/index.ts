@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { encode as encodeBlurhash } from 'blurhash';
 import { encode as encodeCSSBlobHash } from './css-blob-hash';
+import quantize from './quantize';
 
 // Our goal is to compress the image into some ultra-compressed representation that can be used to display
 // a placeholder image while the full image is loading.
@@ -62,6 +63,16 @@ function getResizedDimensions(
 	throw new Error(`Unexpected aspect ratio: ${aspectRatio}`);
 }
 
+function quantizeWrapper(pixelData: Uint8Array, numColors: number): [number, number, number][] {
+	let pixelDataArrays = [];
+	for (let i = 0; i < pixelData.length; i += 3) {
+		pixelDataArrays.push([pixelData[i], pixelData[i + 1], pixelData[i + 2]]);
+	}
+
+	let palette = quantize(pixelDataArrays, numColors);
+	return palette.palette();
+}
+
 // In order to make our calculations as simple as possible, we'll have the Images binding resize the image
 // to a single pixel, and then we'll just read the RGB values of that pixel.
 async function getDominantColor(image: ReadableStream): Promise<string> {
@@ -72,6 +83,20 @@ async function getDominantColor(image: ReadableStream): Promise<string> {
 	let r = pixelData[0];
 	let g = pixelData[1];
 	let b = pixelData[2];
+
+	return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+async function getDominantColorFromPalette(image: ReadableStream): Promise<string> {
+	let rbgImage = await env.IMAGES.input(image).transform({ width: 100, height: 100, fit: 'cover' }).output({ format: 'rgb' });
+	let rgbImageBuffer = await rbgImage.response().arrayBuffer();
+	let pixelData = new Uint8Array(rgbImageBuffer);
+
+	let palette = quantizeWrapper(pixelData, 5);
+	let dominantColor = palette[0];
+	let r = dominantColor[0];
+	let g = dominantColor[1];
+	let b = dominantColor[2];
 
 	return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
@@ -87,57 +112,66 @@ async function getBlurhash(image: ReadableStream, aspectRatioInfo: AspectRatioIn
 	return encodeBlurhash(pixelDataClamped, resizedWidth, resizedHeight, 4, 4);
 }
 
-async function getCSSBlobHash(image: ReadableStream, aspectRatioInfo: AspectRatioInfo): Promise<number> {
-	// if Cloudflare Images supported Sharp's "fill" fit option, this could be simplified
-	let resizedImage = await env.IMAGES.input(image)
-		.transform({ width: RESIZE_DIMENSION, height: RESIZE_DIMENSION, fit: 'contain' })
-		.output({ format: 'rgb' });
+async function getCSSBlobHash(image: ReadableStream): Promise<number> {
+	let resizedImage = await env.IMAGES.input(image).transform({ width: 3, height: 2, fit: 'squeeze' }).output({ format: 'rgb' });
 	let resizedImageBuffer = await resizedImage.response().arrayBuffer();
 	let pixelDataClamped = new Uint8ClampedArray(resizedImageBuffer);
 
-	let { width: resizedWidth, height: resizedHeight } = getResizedDimensions(aspectRatioInfo, RESIZE_DIMENSION, pixelDataClamped.length / 3);
-	return encodeCSSBlobHash(pixelDataClamped, resizedWidth, resizedHeight);
+	return encodeCSSBlobHash(pixelDataClamped);
 }
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
-		const url = new URL(request.url);
-		const imageUrl = url.searchParams.get('url');
-		if (!imageUrl) {
-			return new Response('Missing url query parameter', { status: 400 });
-		}
+		let url = new URL(request.url);
+		let pathname = url.pathname;
 
-		let imageResponse = await fetch(imageUrl);
-		if (!imageResponse.body) {
-			return new Response('Failed to fetch image', { status: 400 });
-		}
-
-		let [bodyCopy, extra] = imageResponse.body.tee();
-		let [bodyCopy2, extra2] = extra.tee();
-		let [bodyCopy3, extra3] = extra2.tee();
-		let [bodyCopy4, _extra4] = extra3.tee();
-
-		let aspectRatioInfo = await getAspectRatio(bodyCopy);
-		let dominantColor = await getDominantColor(bodyCopy2);
-		let blurhash = await getBlurhash(bodyCopy3, aspectRatioInfo);
-		let cssBlobHash = await getCSSBlobHash(bodyCopy4, aspectRatioInfo);
-
-		return new Response(
-			JSON.stringify(
-				{
-					aspectRatio: aspectRatioInfo.aspectRatio,
-					width: aspectRatioInfo.width,
-					height: aspectRatioInfo.height,
-					dominantColor,
-					blurhash,
-					cssBlobHash,
-				},
-				null,
-				2
-			),
-			{
-				headers: { 'Content-Type': 'application/json' },
+		if (pathname.startsWith('/api/')) {
+			// If this is an API request (has 'url' query parameter), process the image
+			const imageUrl = url.searchParams.get('url');
+			if (!imageUrl) {
+				return new Response('Missing url query parameter', { status: 400 });
 			}
-		);
+
+			let imageResponse = await fetch(imageUrl);
+			if (!imageResponse.body) {
+				return new Response('Failed to fetch image', { status: 400 });
+			}
+
+			// Reading the body stream consumes it, so let's tee it to make copies
+			// There is likely a better way to do this that I'm missing
+			let [bodyCopy, extra] = imageResponse.body.tee();
+			let [bodyCopy2, extra2] = extra.tee();
+			let [bodyCopy3, extra3] = extra2.tee();
+			let [bodyCopy4, extra4] = extra3.tee();
+			let [bodyCopy5, extra5] = extra4.tee();
+
+			let aspectRatioInfo = await getAspectRatio(bodyCopy);
+			let dominantColor = await getDominantColor(bodyCopy2);
+			let dominantColorFromPalette = await getDominantColorFromPalette(bodyCopy3);
+			let blurhash = await getBlurhash(bodyCopy4, aspectRatioInfo);
+			let cssBlobHash = await getCSSBlobHash(bodyCopy5);
+
+			return new Response(
+				JSON.stringify(
+					{
+						aspectRatio: aspectRatioInfo.aspectRatio,
+						width: aspectRatioInfo.width,
+						height: aspectRatioInfo.height,
+						dominantColor,
+						dominantColorFromPalette,
+						blurhash,
+						cssBlobHash,
+					},
+					null,
+					2
+				),
+				{
+					headers: { 'Content-Type': 'application/json' },
+				}
+			);
+		}
+
+		// Otherwise, serve static assets
+		return env.ASSETS.fetch(request);
 	},
 } satisfies ExportedHandler<Env>;

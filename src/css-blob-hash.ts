@@ -1,8 +1,19 @@
 import { rgbToOkLab } from './convert.mjs';
+import quantize from './quantize';
 
-export function encode(pixelData: Uint8ClampedArray, width: number, height: number): number {
+function quantizeWrapper(pixelData: Uint8ClampedArray, numColors: number): [number, number, number][] {
+	let pixelDataArrays = [];
+	for (let i = 0; i < pixelData.length; i += 3) {
+		pixelDataArrays.push([pixelData[i], pixelData[i + 1], pixelData[i + 2]]);
+	}
+
+	let palette = quantize(pixelDataArrays, numColors);
+	return palette.palette();
+}
+
+export function encode(pixelData: Uint8ClampedArray): number {
 	// reference: https://github.com/Kalabasa/leanrada.com/blob/7b6739c7c30c66c771fcbc9e1dc8942e628c5024/main/scripts/update/lqip.mjs#L54-L75
-	let { ll, aaa, bbb, values } = analyzeImage(pixelData, width, height);
+	let { ll, aaa, bbb, values } = analyzeImage(pixelData);
 
 	let ca = Math.round(values[0] * 0b11);
 	let cb = Math.round(values[1] * 0b11);
@@ -37,35 +48,21 @@ type ImageAnalysis = {
 	values: number[];
 };
 
-function analyzeImage(pixelData: Uint8ClampedArray, width: number, height: number): ImageAnalysis {
-	// Interpret the image as a 3x2 grid of cells, and calculate the average rgb value of each cell
-	//
-	// +---+---+---+
-	// |   |   |   |
-	// +---+---+---+
-	// |   |   |   |
-	// +---+---+---+
-	let cellWidth = width / 3;
-	let cellHeight = height / 2;
-
+function analyzeImage(pixelData: Uint8ClampedArray): ImageAnalysis {
 	// track the pixel values from each cell
 	let cells = Array.from({ length: 6 }, () => ({ r: 0, g: 0, b: 0, count: 0 }));
-	// track the pixel values from the whole image
-	let total = { r: 0, g: 0, b: 0 };
 
-	for (let y = 0; y < height; y++) {
-		for (let x = 0; x < width; x++) {
-			const cellIndex = getCellIndex(x, y, cellWidth, cellHeight);
-			const pixelIndex = (y * width + x) * 3;
+	// Pick up a palette from the image. We only want the most dominant color
+	let palette = quantizeWrapper(pixelData, 5);
+
+	for (let y = 0; y < 2; y++) {
+		for (let x = 0; x < 3; x++) {
+			const cellIndex = y * 3 + x;
+			const pixelIndex = (y * 3 + x) * 3;
 
 			cells[cellIndex].r += pixelData[pixelIndex];
 			cells[cellIndex].g += pixelData[pixelIndex + 1];
 			cells[cellIndex].b += pixelData[pixelIndex + 2];
-			cells[cellIndex].count++;
-
-			total.r += pixelData[pixelIndex];
-			total.g += pixelData[pixelIndex + 1];
-			total.b += pixelData[pixelIndex + 2];
 		}
 	}
 
@@ -74,15 +71,15 @@ function analyzeImage(pixelData: Uint8ClampedArray, width: number, height: numbe
 		a: rawBaseA,
 		b: rawBaseB,
 	} = rgbToOkLab({
-		r: Math.round(total.r / (width * height)),
-		g: Math.round(total.g / (width * height)),
-		b: Math.round(total.b / (width * height)),
+		r: palette[0][0],
+		g: palette[0][1],
+		b: palette[0][2],
 	});
 	const { ll, aaa, bbb } = findOklabBits(rawBaseL, rawBaseA, rawBaseB);
 	const { L: baseL, a: baseA, b: baseB } = bitsToLab(ll, aaa, bbb);
 	const values = cells.map((cell) => {
 		// We only need perceptual lightness for each cell
-		let { L } = rgbToOkLab({ r: cell.r / cell.count, g: cell.g / cell.count, b: cell.b / cell.count });
+		let { L } = rgbToOkLab({ r: cell.r, g: cell.g, b: cell.b });
 		return clamp(0.5 + L - baseL, 0, 1);
 	});
 
@@ -94,13 +91,7 @@ function analyzeImage(pixelData: Uint8ClampedArray, width: number, height: numbe
 	};
 }
 
-function getCellIndex(x: number, y: number, cellWidth: number, cellHeight: number): number {
-	const col = Math.min(2, Math.floor(x / cellWidth));
-	const row = Math.min(1, Math.floor(y / cellHeight));
-	return row * 3 + col;
-}
-
-// Lovingly copied from https://github.com/Kalabasa/leanrada.com/blob/7b6739c7c30c66c771fcbc9e1dc8942e628c5024/main/scripts/update/lqip.mjs#L118-L159
+// Copied from https://github.com/Kalabasa/leanrada.com/blob/7b6739c7c30c66c771fcbc9e1dc8942e628c5024/main/scripts/update/lqip.mjs#L118-L159
 
 // find the best bit configuration that would produce a color closest to target
 function findOklabBits(targetL: number, targetA: number, targetB: number): { ll: number; aaa: number; bbb: number } {

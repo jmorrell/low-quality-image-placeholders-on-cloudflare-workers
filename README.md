@@ -34,6 +34,17 @@ This is easy to implement on both the client and server, doesn't require any Jav
 to load, but the solid block of color can be a bit visually underwhelming compared to the
 alternatives.
 
+I've implemented this two ways. The simpler method is just resizing the image down to
+a single 1x1 pixel and taking that value. This requires very little code and works
+reasonably well for photos, however it can blend together colors from the image
+and wind up looking a bit muddy.
+
+The second approach resizes the image to be reasonable to work with, and then uses the
+[underlying Modified Median Cut Quantization (MMCQ) algorithm](https://github.com/lokesh/quantize) from
+the [color-thief](https://github.com/lokesh/color-thief) library to group colors together. If
+the image has a lot of a single color, such as text on a white background, it will tend to pick out
+this main color instead of averaging it with the rest of the colors in the image.
+
 ![pinterest-placeholders](https://github.com/user-attachments/assets/960a3d30-ce27-4443-bd11-4ad30daaeff8)
 
 ### Blurhash
@@ -59,5 +70,8 @@ a single number between `-999,999` and `999,999` in a way that can be extracted 
 It seems the only implementation of this so far is [their blog itself](https://github.com/Kalabasa/leanrada.com/blob/7b6739c7c30c66c771fcbc9e1dc8942e628c5024/main/scripts/update/lqip.mjs#L54-L75). I've modified it
 somewhat to work well on Workers.
 
-<img width="1038" height="835" alt="Comparison of CSS-only hash vs blurhash" src="https://github.com/user-attachments/assets/66c715a4-61a7-4d27-80a4-04be324c5cdb" />
+There is another feature of the Cloudflare Images bindings that is not documented that helps with this logic. There
+is a ["squeeze" fit](https://workers-types.pages.dev/#BasicImageTransformations.fit) that "Stretches and deforms to
+the width and height given, even if it breaks aspect ratio" which allows us to resize to exactly 3x2 pixels.
 
+<img width="1038" height="835" alt="Comparison of CSS-only hash vs blurhash" src="https://github.com/user-attachments/assets/66c715a4-61a7-4d27-80a4-04be324c5cdb" />

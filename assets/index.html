@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Image Compression Visualization</title>
+		<style>
+			/* Low quality image placeholders in pure CSS in a single element.
+            --lqip: (20-bit number) - 2^19
+            :98765432109876543210:
+            :aaBBccDDeeFFllAAAbbb:
+            - 6 2-bit grayscale area values dividing the area in 3x2
+            - 2 bits L channel of base Oklab color for full area
+            - 3 bits a channel of base Oklab color for full area
+            - 3 bits b channel of base Oklab color for full area */
+			[style*='--lqip:']:where([loading='lazy'], [preload='none'], .force-lqip) {
+				--lqip-ca: mod(round(down, calc((var(--lqip) + 524288) / 262144)), 4);
+				--lqip-cb: mod(round(down, calc((var(--lqip) + 524288) / 65536)), 4);
+				--lqip-cc: mod(round(down, calc((var(--lqip) + 524288) / 16384)), 4);
+				--lqip-cd: mod(round(down, calc((var(--lqip) + 524288) / 4096)), 4);
+				--lqip-ce: mod(round(down, calc((var(--lqip) + 524288) / 1024)), 4);
+				--lqip-cf: mod(round(down, calc((var(--lqip) + 524288) / 256)), 4);
+				--lqip-ll: mod(round(down, calc((var(--lqip) + 524288) / 64)), 4);
+				--lqip-aaa: mod(round(down, calc((var(--lqip) + 524288) / 8)), 8);
+				--lqip-bbb: mod(calc(var(--lqip) + 524288), 8);
+
+				--lqip-ca-clr: hsl(0 0% calc(var(--lqip-ca) / 3 * 100%));
+				--lqip-cb-clr: hsl(0 0% calc(var(--lqip-cb) / 3 * 100%));
+				--lqip-cc-clr: hsl(0 0% calc(var(--lqip-cc) / 3 * 100%));
+				--lqip-cd-clr: hsl(0 0% calc(var(--lqip-cd) / 3 * 100%));
+				--lqip-ce-clr: hsl(0 0% calc(var(--lqip-ce) / 3 * 100%));
+				--lqip-cf-clr: hsl(0 0% calc(var(--lqip-cf) / 3 * 100%));
+				--lqip-base-clr: oklab(
+					calc(var(--lqip-ll) / 3 * 0.6 + 0.2) calc(var(--lqip-aaa) / 8 * 0.7 - 0.35) calc((var(--lqip-bbb) + 1) / 8 * 0.7 - 0.35)
+				);
+
+				--lqip-stop10: 2%;
+				--lqip-stop20: 8%;
+				--lqip-stop30: 18%;
+				--lqip-stop40: 32%;
+				background-blend-mode: hard-light, hard-light, hard-light, hard-light, hard-light, hard-light, overlay, overlay, overlay, overlay,
+					overlay, overlay, normal;
+				background-image: radial-gradient(
+						50% 75% at 16.67% 25%,
+						rgb(from var(--lqip-ca-clr) r g b / 50%),
+						rgb(from var(--lqip-ca-clr) r g b / calc(50% - var(--lqip-stop10) / 2)) 10%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(50% - var(--lqip-stop20) / 2)) 20%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(50% - var(--lqip-stop30) / 2)) 30%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(50% - var(--lqip-stop40) / 2)) 40%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop40) / 2)) 60%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop30) / 2)) 70%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop20) / 2)) 80%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop10) / 2)) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 83.33% 25%,
+						rgb(from var(--lqip-cc-clr) r g b / 50%),
+						rgb(from var(--lqip-cc-clr) r g b / calc(50% - var(--lqip-stop10) / 2)) 10%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(50% - var(--lqip-stop20) / 2)) 20%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(50% - var(--lqip-stop30) / 2)) 30%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(50% - var(--lqip-stop40) / 2)) 40%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop40) / 2)) 60%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop30) / 2)) 70%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop20) / 2)) 80%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop10) / 2)) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 50% 25%,
+						rgb(from var(--lqip-cb-clr) r g b / 50%),
+						rgb(from var(--lqip-cb-clr) r g b / calc(50% - var(--lqip-stop10) / 2)) 10%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(50% - var(--lqip-stop20) / 2)) 20%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(50% - var(--lqip-stop30) / 2)) 30%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(50% - var(--lqip-stop40) / 2)) 40%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop40) / 2)) 60%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop30) / 2)) 70%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop20) / 2)) 80%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop10) / 2)) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 16.67% 75%,
+						rgb(from var(--lqip-cd-clr) r g b / 50%),
+						rgb(from var(--lqip-cd-clr) r g b / calc(50% - var(--lqip-stop10) / 2)) 10%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(50% - var(--lqip-stop20) / 2)) 20%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(50% - var(--lqip-stop30) / 2)) 30%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(50% - var(--lqip-stop40) / 2)) 40%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop40) / 2)) 60%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop30) / 2)) 70%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop20) / 2)) 80%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop10) / 2)) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 83.33% 75%,
+						rgb(from var(--lqip-cf-clr) r g b / 50%),
+						rgb(from var(--lqip-cf-clr) r g b / calc(50% - var(--lqip-stop10) / 2)) 10%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(50% - var(--lqip-stop20) / 2)) 20%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(50% - var(--lqip-stop30) / 2)) 30%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(50% - var(--lqip-stop40) / 2)) 40%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop40) / 2)) 60%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop30) / 2)) 70%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop20) / 2)) 80%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop10) / 2)) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 50% 75%,
+						rgb(from var(--lqip-ce-clr) r g b / 50%),
+						rgb(from var(--lqip-ce-clr) r g b / calc(50% - var(--lqip-stop10) / 2)) 10%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(50% - var(--lqip-stop20) / 2)) 20%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(50% - var(--lqip-stop30) / 2)) 30%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(50% - var(--lqip-stop40) / 2)) 40%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop40) / 2)) 60%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop30) / 2)) 70%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop20) / 2)) 80%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop10) / 2)) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 16.67% 25%,
+						var(--lqip-ca-clr),
+						rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop10))) 10%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop20))) 20%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop30))) 30%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop40))) 40%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop40))) 60%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop30))) 70%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop20))) 80%,
+						rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop10))) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 50% 25%,
+						var(--lqip-cb-clr),
+						rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop10))) 10%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop20))) 20%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop30))) 30%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop40))) 40%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop40))) 60%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop30))) 70%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop20))) 80%,
+						rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop10))) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 83.33% 25%,
+						var(--lqip-cc-clr),
+						rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop10))) 10%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop20))) 20%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop30))) 30%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop40))) 40%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop40))) 60%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop30))) 70%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop20))) 80%,
+						rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop10))) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 16.67% 75%,
+						var(--lqip-cd-clr),
+						rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop10))) 10%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop20))) 20%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop30))) 30%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop40))) 40%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop40))) 60%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop30))) 70%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop20))) 80%,
+						rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop10))) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 50% 75%,
+						var(--lqip-ce-clr),
+						rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop10))) 10%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop20))) 20%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop30))) 30%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop40))) 40%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop40))) 60%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop30))) 70%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop20))) 80%,
+						rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop10))) 90%,
+						transparent
+					),
+					radial-gradient(
+						50% 75% at 83.33% 75%,
+						var(--lqip-cf-clr),
+						rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop10))) 10%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop20))) 20%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop30))) 30%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop40))) 40%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop40))) 60%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop30))) 70%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop20))) 80%,
+						rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop10))) 90%,
+						transparent
+					),
+					linear-gradient(0deg, var(--lqip-base-clr), var(--lqip-base-clr));
+			}
+
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+				background: black;
+				min-height: 100vh;
+				padding: 10px;
+				color: #333;
+			}
+
+			.container {
+				max-width: 1200px;
+				margin: 0 auto;
+				background: white;
+				border-radius: 16px;
+				box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+				overflow: hidden;
+			}
+
+			.header {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				padding: 15px;
+				text-align: center;
+				color: white;
+			}
+
+			.header h1 {
+				font-size: 1.8rem;
+				margin-bottom: 5px;
+				font-weight: 300;
+			}
+
+			.header p {
+				font-size: 1.1rem;
+				opacity: 0.9;
+			}
+
+			.input-section {
+				padding: 15px;
+				border-bottom: 1px solid #eee;
+			}
+
+			.input-group {
+				display: flex;
+				gap: 12px;
+				margin-bottom: 20px;
+			}
+
+			input[type='url'] {
+				flex: 1;
+				padding: 12px 16px;
+				border: 2px solid #e1e5e9;
+				border-radius: 8px;
+				font-size: 16px;
+				transition: border-color 0.3s ease;
+			}
+
+			input[type='url']:focus {
+				outline: none;
+				border-color: #667eea;
+			}
+
+			button {
+				padding: 12px 24px;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				border: none;
+				border-radius: 8px;
+				color: white;
+				font-size: 16px;
+				cursor: pointer;
+				font-weight: 500;
+			}
+
+			button:disabled {
+				opacity: 0.6;
+				cursor: not-allowed;
+			}
+
+			.loading {
+				text-align: center;
+				padding: 20px;
+				color: #666;
+			}
+
+			.error {
+				background: #fee;
+				border: 1px solid #fcc;
+				border-radius: 8px;
+				padding: 16px;
+				color: #c33;
+				margin-bottom: 20px;
+			}
+
+			.results {
+				padding: 15px;
+				display: none;
+			}
+
+			.grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				grid-template-rows: 1fr 1fr;
+				gap: 12px;
+				margin-bottom: 15px;
+				max-width: 800px;
+				margin-left: auto;
+				margin-right: auto;
+			}
+
+			.representation-card {
+				background: #f8f9fa;
+				border-radius: 8px;
+				padding: 12px;
+				text-align: center;
+			}
+
+			.representation-card h3 {
+				margin-bottom: 8px;
+				color: #333;
+				font-size: 1rem;
+			}
+
+			.image-container {
+				width: 100%;
+				aspect-ratio: 1;
+				overflow: hidden;
+				margin-bottom: 8px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				position: relative;
+			}
+
+			.image-container img {
+				max-width: 100%;
+				max-height: 100%;
+				object-fit: contain;
+			}
+
+			.dominant-color-display {
+				width: 100%;
+				height: 100%;
+				border: 2px solid #ddd;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				color: white;
+				font-weight: bold;
+				text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+			}
+
+			.data-display {
+				background: #fff;
+				border: 1px solid #dee2e6;
+				padding: 8px;
+				font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+				font-size: 11px;
+				text-align: left;
+				word-break: break-all;
+				max-height: 60px;
+				overflow-y: auto;
+			}
+
+			.original-section {
+				margin-top: 30px;
+				padding-top: 30px;
+				border-top: 2px solid #eee;
+			}
+
+			.original-image {
+				text-align: center;
+			}
+
+			.original-image img {
+				max-width: 100%;
+				height: auto;
+				box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+			}
+
+			.info-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 16px;
+				margin-top: 20px;
+			}
+
+			.info-item {
+				background: #f8f9fa;
+				padding: 16px;
+				border-radius: 8px;
+				text-align: center;
+			}
+
+			.info-item strong {
+				display: block;
+				margin-bottom: 8px;
+				color: #495057;
+			}
+
+			.info-item span {
+				color: #6c757d;
+				font-size: 0.9rem;
+			}
+
+			/* Mobile responsive design */
+			@media (max-width: 768px) {
+				.grid {
+					grid-template-columns: 1fr;
+					grid-template-rows: auto;
+					max-width: 100%;
+				}
+
+				.container {
+					margin: 10px;
+				}
+
+				.header h1 {
+					font-size: 2rem;
+				}
+
+				.input-section {
+					padding: 20px;
+				}
+
+				.results {
+					padding: 20px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<h1>Low Quality Image Placeholders</h1>
+			</div>
+
+			<div class="input-section">
+				<div class="input-group">
+					<input type="url" id="imageUrl" placeholder="Enter image URL..." value="" />
+					<button onclick="analyzeImage()">Analyze Image</button>
+				</div>
+				<div id="error" class="error" style="display: none"></div>
+				<div id="loading" class="loading" style="display: none">Analyzing image...</div>
+			</div>
+
+			<div id="results" class="results">
+				<div class="grid">
+					<div class="representation-card">
+						<h3>Original Image</h3>
+						<div class="image-container">
+							<img id="originalImage" src="" alt="Original image" style="display: none" />
+						</div>
+						<div class="data-display">
+							<div style="display: flex; gap: 16px; justify-content: center">
+								<span><strong>Dimensions:</strong> <span id="imageDimensions">-</span></span>
+								<span><strong>Aspect:</strong> <span id="aspectRatio">-</span></span>
+							</div>
+						</div>
+					</div>
+
+					<div class="representation-card">
+						<h3>Dominant Color</h3>
+						<div class="image-container">
+							<div id="dominantColorDisplay" class="dominant-color-display"></div>
+						</div>
+						<div id="dominantColorData" class="data-display"></div>
+					</div>
+
+					<div class="representation-card">
+						<h3>Dominant Color From Palette</h3>
+						<div class="image-container">
+							<div id="dominantColorFromPaletteDisplay" class="dominant-color-display"></div>
+						</div>
+						<div id="dominantColorFromPaletteData" class="data-display"></div>
+					</div>
+
+					<div class="representation-card">
+						<h3>Blurhash</h3>
+						<div class="image-container">
+							<canvas id="blurhashCanvas" style="width: 100%; height: 100%"></canvas>
+						</div>
+						<div id="blurhashData" class="data-display"></div>
+					</div>
+
+					<div class="representation-card">
+						<h3>CSS Blob Hash</h3>
+						<div class="image-container">
+							<div
+								id="cssBlobHashPlaceholder"
+								class="force-lqip"
+								style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center"
+							></div>
+						</div>
+						<div id="cssBlobHashData" class="data-display"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script type="module">
+			import { decode } from './blurhash/index.js';
+
+			async function analyzeImage() {
+				const imageUrl = document.getElementById('imageUrl').value.trim();
+				const errorDiv = document.getElementById('error');
+				const loadingDiv = document.getElementById('loading');
+				const resultsDiv = document.getElementById('results');
+
+				// Reset UI
+				errorDiv.style.display = 'none';
+				resultsDiv.style.display = 'none';
+
+				if (!imageUrl) {
+					showError('Please enter an image URL');
+					return;
+				}
+
+				// Validate URL format
+				try {
+					new URL(imageUrl);
+				} catch {
+					showError('Please enter a valid URL');
+					return;
+				}
+
+				loadingDiv.style.display = 'block';
+
+				try {
+					// Call the worker API with the image URL
+					const response = await fetch(`/api/?url=${encodeURIComponent(imageUrl)}`);
+
+					if (!response.ok) {
+						throw new Error('Failed to analyze image');
+					}
+
+					const data = await response.json();
+					displayResults(data, imageUrl);
+				} catch (error) {
+					showError(`Error analyzing image: ${error.message}`);
+				} finally {
+					loadingDiv.style.display = 'none';
+				}
+			}
+			window.analyzeImage = analyzeImage;
+
+			function showError(message) {
+				const errorDiv = document.getElementById('error');
+				errorDiv.textContent = message;
+				errorDiv.style.display = 'block';
+			}
+
+			function displayResults(data, originalImageUrl) {
+				// Calculate and set aspect ratio for all image containers
+				const aspectRatio = data.width / data.height;
+				const imageContainers = document.querySelectorAll('.image-container');
+				imageContainers.forEach((container) => {
+					container.style.aspectRatio = aspectRatio;
+				});
+
+				// Display original image
+				const originalImg = document.getElementById('originalImage');
+				originalImg.src = originalImageUrl;
+				originalImg.style.display = 'block';
+
+				// Display image info
+				document.getElementById('imageDimensions').textContent = `${data.width} × ${data.height}`;
+				document.getElementById('aspectRatio').textContent = data.aspectRatio;
+
+				// Display dominant color
+				const dominantColorDisplay = document.getElementById('dominantColorDisplay');
+				dominantColorDisplay.style.backgroundColor = data.dominantColor;
+				dominantColorDisplay.style.maxWidth = data.width + 'px';
+				dominantColorDisplay.style.maxHeight = data.height + 'px';
+				document.getElementById('dominantColorData').textContent = data.dominantColor;
+
+				// Display dominant color from palette
+				const dominantColorFromPaletteDisplay = document.getElementById('dominantColorFromPaletteDisplay');
+				dominantColorFromPaletteDisplay.style.backgroundColor = data.dominantColorFromPalette;
+				dominantColorFromPaletteDisplay.style.maxWidth = data.width + 'px';
+				dominantColorFromPaletteDisplay.style.maxHeight = data.height + 'px';
+				document.getElementById('dominantColorFromPaletteData').textContent = data.dominantColorFromPalette;
+
+				// Display blurhash (placeholder for now)
+				document.getElementById('blurhashData').textContent = data.blurhash;
+				let canvas = document.getElementById('blurhashCanvas');
+				canvas.style.maxWidth = data.width + 'px';
+				canvas.style.maxHeight = data.height + 'px';
+				let canvasWidth = canvas.width;
+				let canvasHeight = canvas.height;
+				const pixels = decode(data.blurhash, canvasWidth, canvasHeight);
+				if (pixels) {
+					const ctx = document.getElementById('blurhashCanvas').getContext('2d');
+					const imageData = new ImageData(pixels, canvasWidth, canvasHeight);
+					ctx.putImageData(imageData, 0, 0);
+				}
+
+				// Display CSS blob hash (placeholder for now)
+				let cssBlobHashPlaceholder = document.getElementById('cssBlobHashPlaceholder');
+				cssBlobHashPlaceholder.style.setProperty('--lqip', data.cssBlobHash);
+				cssBlobHashPlaceholder.style.maxWidth = data.width + 'px';
+				cssBlobHashPlaceholder.style.maxHeight = data.height + 'px';
+				document.getElementById('cssBlobHashData').textContent = data.cssBlobHash;
+
+				document.getElementById('results').style.display = 'block';
+			}
+
+			// Allow Enter key to trigger analysis
+			document.getElementById('imageUrl').addEventListener('keypress', function (e) {
+				if (e.key === 'Enter') {
+					analyzeImage();
+				}
+			});
+
+			// Load sample image on page load
+			window.addEventListener('load', function () {
+				document.getElementById('imageUrl').value = 'https://picsum.photos/800/600';
+			});
+		</script>
+	</body>
+</html>

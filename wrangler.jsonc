@@ -8,6 +8,10 @@
 		"enabled": true
 	},
 	"images": {
-    "binding": "IMAGES", // i.e. available in your Worker on env.IMAGES
-  }
+    "binding": "IMAGES" // i.e. available in your Worker on env.IMAGES
+  },
+	"assets": {
+		"directory": "assets",
+		"binding": "ASSETS"
+	}
 }
