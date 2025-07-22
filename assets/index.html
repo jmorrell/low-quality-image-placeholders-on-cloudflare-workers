@@ -5,6 +5,11 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Image Compression Visualization</title>
 		<style>
+			/* This HTML file is mostly LLM generated. Pick out the parts that
+             * you might need, but don't expect elegance.
+             */
+		</style>
+		<style>
 			/* Low quality image placeholders in pure CSS in a single element.
             --lqip: (20-bit number) - 2^19
             :98765432109876543210:
@@ -498,12 +503,21 @@
 						</div>
 						<div id="cssBlobHashData" class="data-display"></div>
 					</div>
+
+					<div class="representation-card">
+						<h3>Thumbhash</h3>
+						<div class="image-container">
+							<canvas id="thumbhashCanvas" style="width: 100%; height: 100%"></canvas>
+						</div>
+						<div id="thumbhashData" class="data-display"></div>
+					</div>
 				</div>
 			</div>
 		</div>
 
 		<script type="module">
 			import { decode } from './blurhash/index.js';
+			import { thumbHashToRGBA } from './thumbhash.js';
 
 			async function analyzeImage() {
 				const imageUrl = document.getElementById('imageUrl').value.trim();
@@ -585,7 +599,7 @@
 				dominantColorFromPaletteDisplay.style.maxHeight = data.height + 'px';
 				document.getElementById('dominantColorFromPaletteData').textContent = data.dominantColorFromPalette;
 
-				// Display blurhash (placeholder for now)
+				// Display blurhash
 				document.getElementById('blurhashData').textContent = data.blurhash;
 				let canvas = document.getElementById('blurhashCanvas');
 				canvas.style.maxWidth = data.width + 'px';
@@ -599,12 +613,32 @@
 					ctx.putImageData(imageData, 0, 0);
 				}
 
-				// Display CSS blob hash (placeholder for now)
+				// Display CSS blob hash
 				let cssBlobHashPlaceholder = document.getElementById('cssBlobHashPlaceholder');
 				cssBlobHashPlaceholder.style.setProperty('--lqip', data.cssBlobHash);
 				cssBlobHashPlaceholder.style.maxWidth = data.width + 'px';
 				cssBlobHashPlaceholder.style.maxHeight = data.height + 'px';
 				document.getElementById('cssBlobHashData').textContent = data.cssBlobHash;
+
+				// Display thumbhash
+				document.getElementById('thumbhashData').textContent = data.thumbhash;
+				let thumbhashCanvas = document.getElementById('thumbhashCanvas');
+
+				let bytes = atob(data.thumbhash);
+				let hash = new Uint8Array(bytes.length);
+				for (let i = 0; i < bytes.length; i++) {
+					hash[i] = bytes.charCodeAt(i);
+				}
+
+				let thumbhashRBGA = thumbHashToRGBA(hash);
+				thumbhashCanvas.width = thumbhashRBGA.w;
+				thumbhashCanvas.height = thumbhashRBGA.h;
+				let thumbhashCtx = thumbhashCanvas.getContext('2d');
+				let thumbHashPixels = thumbhashCtx.createImageData(thumbhashRBGA.w, thumbhashRBGA.h);
+				thumbHashPixels.data.set(thumbhashRBGA.rgba);
+				thumbhashCtx.putImageData(thumbHashPixels, 0, 0);
+				thumbhashCanvas.style.maxWidth = data.width + 'px';
+				thumbhashCanvas.style.maxHeight = data.height + 'px';
 
 				document.getElementById('results').style.display = 'block';
 			}

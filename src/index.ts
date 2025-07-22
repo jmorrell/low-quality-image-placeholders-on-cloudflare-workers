@@ -2,6 +2,7 @@ import { env } from 'cloudflare:workers';
 import { encode as encodeBlurhash } from 'blurhash';
 import { encode as encodeCSSBlobHash } from './css-blob-hash';
 import quantize from './quantize';
+import { rgbaToThumbHash } from './thumbhash';
 
 // Our goal is to compress the image into some ultra-compressed representation that can be used to display
 // a placeholder image while the full image is loading.
@@ -120,6 +121,16 @@ async function getCSSBlobHash(image: ReadableStream): Promise<number> {
 	return encodeCSSBlobHash(pixelDataClamped);
 }
 
+async function getThumbhash(image: ReadableStream, aspectRatioInfo: AspectRatioInfo): Promise<string> {
+	let resizedImage = await env.IMAGES.input(image).transform({ width: 100, height: 100, fit: 'contain' }).output({ format: 'rgba' });
+	let resizedImageBuffer = await resizedImage.response().arrayBuffer();
+	let pixelData = new Uint8Array(resizedImageBuffer);
+
+	let { width: resizedWidth, height: resizedHeight } = getResizedDimensions(aspectRatioInfo, 100, pixelData.length / 4);
+	let thumbhash = rgbaToThumbHash(resizedWidth, resizedHeight, pixelData);
+	return btoa(String.fromCharCode(...thumbhash)).replace(/=+$/, '');
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		let url = new URL(request.url);
@@ -144,12 +155,14 @@ export default {
 			let [bodyCopy3, extra3] = extra2.tee();
 			let [bodyCopy4, extra4] = extra3.tee();
 			let [bodyCopy5, extra5] = extra4.tee();
+			let [bodyCopy6, extra6] = extra5.tee();
 
 			let aspectRatioInfo = await getAspectRatio(bodyCopy);
 			let dominantColor = await getDominantColor(bodyCopy2);
 			let dominantColorFromPalette = await getDominantColorFromPalette(bodyCopy3);
 			let blurhash = await getBlurhash(bodyCopy4, aspectRatioInfo);
 			let cssBlobHash = await getCSSBlobHash(bodyCopy5);
+			let thumbhash = await getThumbhash(bodyCopy6, aspectRatioInfo);
 
 			return new Response(
 				JSON.stringify(
@@ -161,6 +174,7 @@ export default {
 						dominantColorFromPalette,
 						blurhash,
 						cssBlobHash,
+						thumbhash,
 					},
 					null,
 					2
