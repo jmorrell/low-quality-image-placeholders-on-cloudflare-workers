@@ -2,7 +2,6 @@
 
 <img width="1095" height="1138" alt="The demo application showing several different types of LQIP images" src="https://github.com/user-attachments/assets/45ac0cd2-abb1-449e-9006-b14af902d96a" />
 
-
 This demo repo contains a couple of implementations for generating
 ultra-compressed versions of images that can be sent along with either
 the HTML or an API request that a browser or app can display to the user
@@ -85,3 +84,14 @@ is a ["squeeze" fit](https://workers-types.pages.dev/#BasicImageTransformations.
 the width and height given, even if it breaks aspect ratio" which allows us to resize to exactly 3x2 pixels.
 
 <img width="1038" height="835" alt="Comparison of CSS-only hash vs blurhash" src="https://github.com/user-attachments/assets/66c715a4-61a7-4d27-80a4-04be324c5cdb" />
+
+### Thumbhash
+
+[Evan Wallace](https://madebyevan.com/) built an alternative to Blurhash called [Thumbhash](https://evanw.github.io/thumbhash/)
+with a couple of advantages:
+
+- more compact
+- encodes the aspect ratio and average color
+- alpha transparency support
+
+It's used very similarly to Blurhash, requiring Javascript and a Canvas API to render the placeholder.
