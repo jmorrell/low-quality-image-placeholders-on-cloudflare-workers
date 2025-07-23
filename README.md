@@ -1,6 +1,7 @@
 # Low Quality Image Placeholders on Cloudflare Workers
 
-<img width="1095" height="1138" alt="The demo application showing several different types of LQIP images" src="https://github.com/user-attachments/assets/45ac0cd2-abb1-449e-9006-b14af902d96a" />
+<img width="1213" height="1268" alt="The demo application showing several different types of LQIP images" src="https://github.com/user-attachments/assets/2123b6fc-2690-4af6-a2b3-b5c29513adfb" />
+
 
 This demo repo contains a couple of implementations for generating
 ultra-compressed versions of images that can be sent along with either
